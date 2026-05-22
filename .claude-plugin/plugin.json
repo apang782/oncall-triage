@@ -1,0 +1,21 @@
+{
+  "name": "oncall-triage",
+  "version": "0.1.0",
+  "description": "Structured incident triage for platform engineers—read-only log/metrics MCP, playbook skill, and safety hooks.",
+  "author": {
+    "name": "Your Name"
+  },
+  "license": "MIT",
+  "keywords": [
+    "on-call",
+    "sre",
+    "observability",
+    "opensearch",
+    "prometheus",
+    "grafana",
+    "mcp",
+    "incident-response"
+  ],
+  "hooks": "./hooks/hooks.json",
+  "mcpServers": "./.mcp.json"
+}

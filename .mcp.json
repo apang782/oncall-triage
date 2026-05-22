@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "mock-observability": {
+      "command": "python",
+      "args": ["${CLAUDE_PLUGIN_ROOT}/mcp-servers/mock-observability/server.py"],
+      "env": {
+        "PYTHONUNBUFFERED": "1"
+      }
+    }
+  }
+}
