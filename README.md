@@ -15,7 +15,7 @@ Claude Code plugin for **platform / SRE engineers** on call: structured, **read-
 **Prerequisites:** [Claude Code](https://code.claude.com/) CLI, **Python 3.10+**.
 
 ```bash
-git clone <your-repo-url> oncall-triage-plugin
+git clone https://github.com/apang782/oncall-triage oncall-triage-plugin
 cd oncall-triage-plugin
 pip install -r mcp-servers/mock-observability/requirements.txt
 claude plugin validate .
