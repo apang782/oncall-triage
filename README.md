@@ -6,13 +6,13 @@ Claude Code plugin for the engineer **holding the pager** during a **live incide
 
 **Problem:** In the first 15–30 minutes of an incident, triage is ad-hoc Grafana tabs and log queries; an AI assistant may suggest destructive `kubectl` or apply commands before blast radius is understood.
 
-**Solution:** `/oncall-triage:incident-triage` skill + `triage` agent + mock read-only MCP + PreToolUse hook. The plugin does not remediate the outage—it structures investigation and blocks dangerous shell.
+**Solution:** `/oncall-triage:incident-triage` skill + `triage` agent + PreToolUse hook (mock MCP bundled for demo installs only). Does not remediate the outage—structures read-only first-pass triage and blocks dangerous shell when wired to your observability MCPs.
 
 **Out of scope:**
 
 - Deploying or changing infrastructure (scale, restart, delete, rollback)
 - CVE triage, data pipelines, or application feature debugging outside service health
-- Replacing your org’s observability stack (use mock MCP for demo; swap `.mcp.json` for real read-only servers in production)
+- Replacing your org’s observability stack (demo uses a **mock** MCP; production means **wiring this plugin to MCP servers you already run**)
 
 ---
 
@@ -70,41 +70,31 @@ Reload after edits: `/reload-plugins`
 
 ---
 
-## Design: portable skill, plugin-specific wiring
+## Wire your observability MCPs (production)
 
-The **skill** describes an MCP-agnostic triage procedure (overview → logs → correlate → handoff). It intentionally does **not** hard-code tool names, so teams can swap observability backends without rewriting the playbook.
+This plugin ships a **triage workflow** (skill, agent, hook)—not a new Grafana or OpenSearch stack. The **`mock-observability`** server is for workshops only; in production you register **MCP servers you already run**.
 
-**Plugin-specific names** live here and in `agents/triage.md`:
+The **skill** is capability-based (overview → logs → correlate → handoff) and usually stays unchanged. **Tool names** are wired in `agents/triage.md` and `.mcp.json`:
 
-| Capability | This repo (demo) | You fork for production |
-|------------|------------------|-------------------------|
-| MCP server | `mock-observability` | Your server key in `.mcp.json` (e.g. `opensearch-logs`, `grafana-metrics`) |
-| Cluster / metrics overview | `cluster_overview` | Your read-only macro or instant query tool |
+| Capability | This repo (demo) | Your environment |
+|------------|------------------|------------------|
+| MCP server | `mock-observability` | Your key(s) in `.mcp.json` |
+| Cluster / metrics overview | `cluster_overview` | Your read-only overview tool |
 | Error log search | `search_logs` | Your read-only log query tool |
-| Claude may expose as | `mcp__mock-observability__cluster_overview`, etc. | `mcp__<your-server>__<tool>` |
+| In Claude | `mcp__mock-observability__…` | `mcp__<your-server>__<tool>` |
 
-**What to edit when swapping MCP:**
-
-1. **`.mcp.json`** — point at your read-only server(s).
-2. **`agents/triage.md`** — update server id and tool names in **Tool priority** and workflow steps.
-3. **`skills/incident-triage/SKILL.md`** — usually **unchanged** (capability-based); only edit if your runbook adds org-specific steps (PagerDuty, escalation).
-
----
-
-## Swap mock → production MCP
-
-Edit `.mcp.json` to point at your org's read-only servers (no writes on the tool surface):
+**Steps:** (1) Confirm you have read-only overview + log-search MCP tools (if you only have Dashboards UI, add MCP for those systems first). (2) Point `.mcp.json` at your server commands/creds—example:
 
 ```json
 {
   "mcpServers": {
-    "opensearch-logs": { "command": "...", "args": ["..."] },
-    "grafana-metrics": { "command": "...", "args": ["..."] }
+    "your-log-mcp": { "command": "...", "args": ["..."] },
+    "your-metrics-mcp": { "command": "...", "args": ["..."] }
   }
 }
 ```
 
-Update **`agents/triage.md`** tool names to match your server (see **Tool mapping** above). The **skill** stays capability-based; silent-failure guards in the skill apply to any backend that returns similar fields.
+(3) Update `agents/triage.md` with your server keys and tool names. (4) Keep the skill unless you add org runbook steps (PagerDuty, escalation).
 
 ---
 
@@ -122,7 +112,7 @@ claude plugin validate .
 
 ## With more time
 
-Production read-only OpenSearch/Grafana MCPs (replacing the mock), a docker-compose workshop lab, and CI running `claude plugin validate`. Same split: ship read-only triage producers first; gate automated playbooks or ticket writers until cost and loop controls exist. I'd also verify delegated triage subagent tool inheritance and add a tested read-only tools allowlist once MCP access on spawn is confirmed.
+Optional **reference** read-only OpenSearch/Grafana MCP implementations (for teams that do not already have log/metrics MCPs)—not required for adoption if you bring your own servers. Plus a docker-compose workshop lab, CI `plugin validate`, verified subagent tool inheritance, and a tested read-only tool allowlist on spawn.
 
 ---
 
