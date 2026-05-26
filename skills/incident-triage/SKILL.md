@@ -3,30 +3,14 @@ name: incident-triage
 description: Read-only first-pass incident triage for a live Kubernetes service outage—metrics, error logs, correlation, handoff. Use when the user is on call, investigating elevated 5xx/latency/crash loop, or invokes /oncall-triage:incident-triage.
 ---
 
-# Incident triage (read-only)
+## MCP
 
-For the **primary on-call engineer** during a **live Kubernetes HTTP service incident** (first 15–30 minutes). Pair with the `triage` agent when the run needs many tool calls.
-
-## Observability MCP (capability-based)
-
-Use your plugin’s configured **read-only observability** MCP server—not browser tabs.
-
-| Step | Capability | What to call |
-|------|------------|--------------|
-| 1 | **Cluster / metrics overview** | One-shot health: nodes, pod phases, restarts, saturation signals (CPU/memory/DB host if exposed) |
-| 2 | **Error log search** | Query by severity, time window, optional text filter; prefer grouped signatures over raw duplicates |
-
-**Rules:**
-
-- Prefer these MCP capabilities over Grafana/Dashboards or browser automation.
-- Discover the actual tool names from the MCP server Claude exposes (names vary by server).
-- If no suitable read-only overview or log-search tools are available, stop and tell the user to fix plugin MCP config (`claude --plugin-dir …`, `/reload-plugins`)—do not improvise with browsers unless they ask.
-
-Concrete tool names for **this** plugin’s demo server are documented in the README (**Tool mapping**)—not in this skill, so you can swap MCP backends without rewriting the playbook.
+- Use read-only observability tools from the loaded plugin; call them by the names Claude exposes for your configured server.
+- If cluster overview or log-search tools are unavailable: stop and tell the user to fix `.mcp.json` / `claude --plugin-dir` / `/reload-plugins` (plugin README). Do not open Dashboards or drive a browser unless they explicitly ask.
 
 ## Inputs
 
-Collect anything missing before step 1:
+Ask the user for anything missing before proceeding:
 
 | Field | Example |
 |-------|---------|
@@ -37,33 +21,33 @@ Collect anything missing before step 1:
 
 ## 1. Metrics snapshot
 
-Call the **cluster / metrics overview** tool (cluster short name + namespace if needed).
+Call the cluster / metrics overview tool (cluster short name + namespace if needed). Prefer read-only MCP tools over browser or Dashboards.
 
 **Before moving on:**
 
-- Pod counts **zero**? → verify env/cluster prefix; zero often means wrong query, not a healthy cluster.
+- Pod counts zero? → verify env/cluster prefix; zero often means wrong query, not a healthy cluster.
 - Note Pending / CrashLoop pods and top restart offenders.
-- If the response includes managed database / Postgres host metrics, note host CPU vs connection saturation.
+- If the response includes managed database host metrics, note host CPU vs connection saturation.
 
 ## 2. Error logs
 
-Call the **log search** tool with:
+Call the log search tool with:
 
 - `severity`: `ERROR` first, then `WARN` if sparse
 - `query`: symptom keywords or `*`
-- `time_range` (or your server’s equivalent string param)—**not** legacy `hours=` unless the tool schema defines it
+- `time_range` string param (e.g. `"30m"`)—not legacy `hours=`
 
 **Before moving on:**
 
-- **`unknown_args_warning` (or similar) present?** → fix arguments before interpreting results.
-- Echo **`effective_lookback`** (or equivalent); do not assume the window you intended was applied.
-- Group stacks by **signature**; report counts.
+- `unknown_args_warning` present? → fix arguments before interpreting results.
+- Echo `effective_lookback`; do not assume the window you intended was applied.
+- Group stacks by signature; report counts.
 
 ## 3. Correlate
 
 **Facts** — only what metrics and logs show (counts, signatures, timestamps).
 
-**Hypotheses** — up to 3, each with **high / medium / low** confidence and the fact(s) that support it. Do not state hypotheses as facts.
+**Hypotheses** — up to 3, each with high / medium / low confidence and the fact(s) that support it. Do not state hypotheses as facts.
 
 ## 4. Handoff
 

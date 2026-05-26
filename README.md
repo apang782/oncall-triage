@@ -27,7 +27,7 @@ pip install -r mcp-servers/mock-observability/requirements.txt
 claude plugin validate .
 ```
 
-### Run the plugin (local — what graders clone)
+### Run the plugin (local install)
 
 `claude plugin install` is for marketplace plugins. For a local repo, use `--plugin-dir`:
 
@@ -61,10 +61,12 @@ Reload after edits: `/reload-plugins`
 
 ## What's in the box
 
+Use the **skill** in the main session for a guided pass; delegate to the **`triage` agent** for longer multi-tool runs.
+
 | Component | Path | Role |
 |-----------|------|------|
-| Agent `triage` | `agents/triage.md` | Read-only investigation workflow |
-| Skill `/oncall-triage:incident-triage` | `skills/incident-triage/SKILL.md` | Playbook + silent-failure checks |
+| Agent `triage` | `agents/triage.md` | Read-only investigation workflow (concrete MCP tool names) |
+| Skill `/oncall-triage:incident-triage` | `skills/incident-triage/SKILL.md` | Portable playbook + silent-failure checks (capability-based) |
 | MCP `mock-observability` | `.mcp.json` + `mcp-servers/` | Canned logs/metrics for workshops |
 | Hook | `hooks/hooks.json` + `scripts/pre_tool_guard.py` | Blocks destructive Bash |
 

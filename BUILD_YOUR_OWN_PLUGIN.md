@@ -111,7 +111,7 @@ Long investigation eating context?→ Agent
 |---------|--------|
 | MCP before browser | `agents/triage.md` |
 | Portable skill (capabilities, not tool names) | `skills/incident-triage/SKILL.md` |
-| Concrete tool mapping | README **Design** section + `agents/triage.md` |
+| Concrete tool mapping | README **Wire your observability MCPs** + `agents/triage.md` |
 | `unknown_args_warning` (no silent defaults) | mock `search_logs` (production servers should emulate) |
 | Mock MCP for workshops | `mcp-servers/mock-observability/` |
 | Defence in depth | skill (procedure) + hook (Bash deny list) |
