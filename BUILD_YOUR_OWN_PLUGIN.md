@@ -109,13 +109,13 @@ For any other workflow, the pattern in sections 1–4 is your starting point —
 
 This repo splits the workflow into two layers:
 
-- **Skill** = the procedure (what to do, in capability terms: "cluster/metrics overview", "log search"). Plugin author owns it.
-- **Agent** = the wiring (which concrete MCP tools to call: `cluster_overview` on `mock-observability`). Plugin consumer owns it.
+- **Skill** = the procedure (what to do, in capability terms: "cluster/metrics overview", "log search"). You ship this upstream.
+- **Agent** = the wiring (which concrete MCP tools to call: `cluster_overview` on `mock-observability`). You edit this per environment.
 
-The honest claim isn't "no edits needed when you swap backends" — tool names live somewhere either way. The claim is **which file is the customer's job to edit**:
+The honest claim isn't "no edits needed when you swap backends" — tool names live somewhere either way. The claim is **which file you're responsible for editing**:
 
-- Upstream skill updates pull cleanly — no merge conflicts with local tool names.
-- One skill can drive multiple agents — prod / dev / staging each wired to a different MCP.
+- Upstream skill updates pull cleanly — no merge conflicts with the tool names you set in the agent.
+- One skill can drive multiple agents — prod / dev / staging, each wired to a different MCP.
 - The skill is shippable as a reusable artifact; another plugin can borrow it without taking your wiring with it.
 
 **Cost of the split:** the workflow exists in two files, so procedure updates touch both. Fine for small plugins; at scale, generate one from the other or designate a canonical entry point.
