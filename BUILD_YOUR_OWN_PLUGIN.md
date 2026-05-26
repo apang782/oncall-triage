@@ -53,7 +53,24 @@ Validate early: `claude plugin validate ./my-plugin`
 
 ---
 
-## 4. Decision tree: MCP vs hook vs skill-only
+## 4. Spec-first when design is non-trivial
+
+For a 3-hour plugin, a short spec is enough. For production MCPs or multi-team rollouts, spec-first avoids shipping the wrong abstraction.
+
+**Write before code (one page):**
+
+- Persona + pain (one paragraph)
+- Components: skill / agent / MCP / hook — and what each will *not* do
+- Tool surface (names, read-only vs write, example JSON shape)
+- Open questions (auth, silent-failure footguns, demo vs prod backends)
+
+**Implement after** alignment. Land **producers** (read-only MCP, skill checklist) before **consumers** (automated summarizers, ticket writers, playbook generators)—gate consumers until cost, loop, and trust controls exist.
+
+This repo followed that split: mock MCP + skill + hook in scope; automated post-triage playbooks explicitly out of scope.
+
+---
+
+## 5. Decision tree: MCP vs hook vs skill-only
 
 ```text
 Need live data from a system?     → MCP (read-only tools first)
@@ -66,7 +83,7 @@ Long investigation eating context?→ Agent
 
 ---
 
-## 5. Case study: observability triage (this repo)
+## 6. Case study: observability triage (this repo)
 
 **Pain:** Browser-driven log/metrics search is slow and untokenizable; agents silently "succeed" with wrong env prefixes or dropped CLI flags.
 
@@ -76,6 +93,7 @@ Long investigation eating context?→ Agent
 |---------|--------|
 | MCP before browser | `agents/triage.md` |
 | Silent-failure checks | `skills/incident-triage/SKILL.md` |
+| `unknown_args_warning` (no silent defaults) | `search_logs` returns warning if legacy `hours=` is passed |
 | Mock MCP for workshops | `mcp-servers/mock-observability/` |
 | Defence in depth | skill (procedure) + hook (Bash deny list) |
 
@@ -88,11 +106,11 @@ Long investigation eating context?→ Agent
 
 ---
 
-## 6. Testing checklist (fresh clone)
+## 7. Testing checklist (fresh clone)
 
 - [ ] `pip install -r …` (if MCP uses Python)
 - [ ] `claude plugin validate .`
-- [ ] `claude plugin install ./my-plugin`
+- [ ] `claude --plugin-dir ./my-plugin`
 - [ ] `/your-skill` runs
 - [ ] Agent invokes MCP tools
 - [ ] Hook blocks a known-bad Bash command
@@ -100,7 +118,7 @@ Long investigation eating context?→ Agent
 
 ---
 
-## 7. Common mistakes
+## 8. Common mistakes
 
 | Mistake | Fix |
 |---------|-----|
@@ -112,7 +130,7 @@ Long investigation eating context?→ Agent
 
 ---
 
-## 8. Where to go next
+## 9. Where to go next
 
 - [Create plugins](https://code.claude.com/docs/en/plugins) — official authoring flow
 - [Plugins reference](https://code.claude.com/docs/en/plugins-reference) — hooks events, `${CLAUDE_PLUGIN_ROOT}`

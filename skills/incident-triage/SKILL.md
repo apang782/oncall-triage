@@ -40,17 +40,20 @@ Invoke MCP tool `search_logs` with:
 
 **Check:**
 
-- Read `unknown_args_warning` if present—do not ignore silent arg drops.
+- If the response includes **`unknown_args_warning`**, stop and fix tool arguments before continuing. (Demo: passing `hours=1` instead of `time_range="1h"` triggers this—older servers silently fell back to a 1h default with no signal.)
 - Group duplicate stack traces by signature; report occurrence counts.
+- Echo **`effective_lookback`** (or equivalent) from the response; do not assume the window you intended was applied.
 
-### 3. Correlate and hypothesize
+### 3. Correlate — facts before hypotheses
 
-Produce:
+Separate evidence from inference (partial reads and wrong env prefixes have caused bad escalations):
 
-1. **Facts** (metrics + logs only)
-2. **Top 2–3 hypotheses** with confidence
-3. **Safe next steps** (read-only kubectl, dashboard links, paging owners)
-4. **Needs human approval** (writes, deletes, rollbacks)
+1. **Facts** — only what metrics and logs explicitly show (counts, signatures, timestamps).
+2. **Hypotheses** — 2–3 items, each with **high / medium / low** confidence and which fact supports it.
+3. **Safe next steps** — read-only checks only (kubectl get/describe/logs, links, page owners).
+4. **Needs human approval** — any write, delete, rollback, scale, or ticket filed on hypothesis alone.
+
+Do not recommend destructive actions or definitive root cause without fact backing.
 
 ### 4. Stop conditions
 

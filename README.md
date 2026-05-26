@@ -1,12 +1,18 @@
 # oncall-triage
 
-Claude Code plugin for **platform / SRE engineers** on call: structured, **read-only** incident triage using observability MCP tools, a playbook skill, and Bash safety hooks.
+Claude Code plugin for the engineer **holding the pager** during a **live incident on a Kubernetes-backed HTTP service**—structured, **read-only** first-pass triage (metrics → logs → correlation) with observability MCP tools, a playbook skill, and Bash safety hooks.
 
-**Persona:** Platform engineer investigating production degradation (Kubernetes + logs + metrics).
+**Persona:** Primary on-call engineer responding to a production incident (e.g. elevated 5xx, latency spike, or crash loop on one cluster/namespace)—not someone doing Terraform rollouts, capacity planning, or postmortem writing.
 
-**Problem:** Ad-hoc Dashboards + PromQL is slow, brittle, and risky when an agent can run destructive shell commands.
+**Problem:** In the first 15–30 minutes of an incident, triage is ad-hoc Grafana tabs and log queries; an AI assistant may suggest destructive `kubectl` or apply commands before blast radius is understood.
 
-**Solution:** `/incident-triage` skill + `triage` agent + mock read-only MCP + PreToolUse hook.
+**Solution:** `/oncall-triage:incident-triage` skill + `triage` agent + mock read-only MCP + PreToolUse hook. The plugin does not remediate the outage—it structures investigation and blocks dangerous shell.
+
+**Out of scope:**
+
+- Deploying or changing infrastructure (scale, restart, delete, rollback)
+- CVE triage, data pipelines, or application feature debugging outside service health
+- Replacing your org’s observability stack (use mock MCP for demo; swap `.mcp.json` for real read-only servers in production)
 
 ---
 
@@ -47,8 +53,9 @@ Reload after edits: `/reload-plugins`
 3. When prompted, use demo inputs:
    - Cluster: `prod-acme`
    - Symptom: elevated 5xx since last deploy
-4. Ask Claude to use the **triage** agent or MCP tools `cluster_overview` and `search_logs` on `mock-observability`.
-5. **Hook demo:** ask Claude to run `kubectl delete pod foo` in Bash — the hook should block with an oncall-triage message.
+4. Ask Claude to use MCP tools `cluster_overview` and `search_logs` on `mock-observability`.
+5. **Silent-failure demo:** call `search_logs` with `hours=1` (wrong param) — response should include `unknown_args_warning`; use `time_range="1h"` instead.
+6. **Hook demo:** ask Claude to run `kubectl delete pod foo` in Bash — the hook blocks the command string before it runs (no real cluster required).
 
 ---
 
@@ -57,7 +64,7 @@ Reload after edits: `/reload-plugins`
 | Component | Path | Role |
 |-----------|------|------|
 | Agent `triage` | `agents/triage.md` | Read-only investigation workflow |
-| Skill `/incident-triage` | `skills/incident-triage/SKILL.md` | Playbook + silent-failure checks |
+| Skill `/oncall-triage:incident-triage` | `skills/incident-triage/SKILL.md` | Playbook + silent-failure checks |
 | MCP `mock-observability` | `.mcp.json` + `mcp-servers/` | Canned logs/metrics for workshops |
 | Hook | `hooks/hooks.json` + `scripts/pre_tool_guard.py` | Blocks destructive Bash |
 
@@ -87,14 +94,14 @@ Update `agents/triage.md` tool names to match your server's registered tools. Ke
 powershell -File scripts/smoke-test.ps1
 
 # Or manually
-claude plugin validate . --strict
+claude plugin validate .
 ```
 
 ---
 
-## With more time (scoping note for submission)
+## With more time
 
-I'd replace the mock MCP with production-hardened read-only log and metrics servers (strict arg validation, series limits, auth error surfacing), add a workshop docker-compose lab, and ship CI that runs `claude plugin validate` on every PR.
+Production read-only OpenSearch/Grafana MCPs (replacing the mock), a docker-compose workshop lab, and CI running `claude plugin validate`. Same split: ship read-only triage producers first; gate automated playbooks or ticket writers until cost and loop controls exist.
 
 ---
 

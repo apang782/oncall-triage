@@ -32,14 +32,27 @@ def search_logs(
     severity: str = "ERROR",
     time_range: str = "30m",
     limit: int = 20,
+    hours: int | None = None,
 ) -> str:
-    """Search cluster logs (read-only). Demo returns grouped signatures."""
+    """Search cluster logs (read-only). Demo returns grouped signatures.
+
+    Use time_range (e.g. \"30m\", \"2h\"). Passing hours= is a legacy footgun and
+    returns unknown_args_warning instead of silently defaulting.
+    """
+    unknown_args_warning = None
+    if hours is not None:
+        unknown_args_warning = (
+            'Ignored parameters: hours. Use time_range="30m" (or "2h") instead; '
+            "do not assume a silent default lookback."
+        )
+
     payload = {
         "cluster": cluster,
         "effective_lookback": time_range,
         "query": query,
         "severity_filter": severity,
         "mode": "mock",
+        "unknown_args_warning": unknown_args_warning,
         "groups": [
             {
                 "signature": "ConnectionTimeoutException: upstream db-primary:5432",
@@ -90,6 +103,7 @@ def cluster_overview(cluster: str, namespace: str | None = None) -> str:
         ],
         "notes": [
             "Pending pods often correlate with node pressure—check events next.",
+            "managed_postgres.azure_cpu_percent: on Azure, host CPU may live under a non-obvious metric name—verify in Prometheus before concluding 'no signal'.",
             "Swap mock-observability for real Grafana/Prometheus MCP in .mcp.json for production.",
         ],
     }
