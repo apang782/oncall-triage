@@ -76,7 +76,7 @@ Use the **skill** in the main session for a guided pass; delegate to the **`tria
 
 This plugin ships a **triage workflow** (skill, agent, hook)—not a new Grafana or OpenSearch stack. The **`mock-observability`** server is for workshops only; in production you register **MCP servers you already run**.
 
-The **skill** is capability-based (overview → logs → correlate → handoff) and usually stays unchanged. **Tool names** are wired in `agents/triage.md` and `.mcp.json`:
+The **skill** is capability-based (overview → logs → correlate → handoff). **Tool names and contracts** are wired in `agents/triage.md` and `.mcp.json`:
 
 | Capability | This repo (demo) | Your environment |
 |------------|------------------|------------------|
@@ -85,18 +85,22 @@ The **skill** is capability-based (overview → logs → correlate → handoff) 
 | Error log search | `search_logs` | Your read-only log query tool |
 | In Claude | `mcp__mock-observability__…` | `mcp__<your-server>__<tool>` |
 
-**Steps:** (1) Confirm you have read-only overview + log-search MCP tools (if you only have Dashboards UI, add MCP for those systems first). (2) Point `.mcp.json` at your server commands/creds—example:
+**Adoption steps:**
 
-```json
-{
-  "mcpServers": {
-    "your-log-mcp": { "command": "...", "args": ["..."] },
-    "your-metrics-mcp": { "command": "...", "args": ["..."] }
-  }
-}
-```
+1. **Confirm read-only MCP tools.** You need an overview + a log-search MCP. If you only have Dashboards UIs today, add MCP for those systems first—this plugin doesn't replace the underlying stack.
+2. **Point `.mcp.json` at your servers.** Replace the mock entry with your real read-only server commands and creds:
 
-(3) Update `agents/triage.md` with your server keys and tool names. (4) Keep the skill unless you add org runbook steps (PagerDuty, escalation) or your MCP exposes different parameter/response field names than the demo (e.g. `unknown_args_warning`, `effective_lookback`)—adapt the step 2 guards to your tool's contract.
+   ```json
+   {
+     "mcpServers": {
+       "your-log-mcp": { "command": "...", "args": ["..."] },
+       "your-metrics-mcp": { "command": "...", "args": ["..."] }
+     }
+   }
+   ```
+
+3. **Wire `agents/triage.md`.** Update server keys and tool names; the agent's tool priority and workflow guards reference these directly.
+4. **Adapt the skill if needed.** It usually stays unchanged—edit step 2 guards only if your tool exposes different parameter/response field names than the demo (e.g. `unknown_args_warning`, `effective_lookback`), or if you add org-specific runbook steps (PagerDuty, escalation).
 
 ---
 
