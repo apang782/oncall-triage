@@ -105,16 +105,22 @@ For any other workflow, the pattern in sections 1–4 is your starting point —
 
 ---
 
-## 6. Tradeoff: portable skill vs explicit wiring
+## 6. Tradeoff: procedure vs wiring
 
-This repo uses what we'll call the **portable-skill / explicit-agent split**: the skill names capabilities ("cluster/metrics overview", "log search"), while the agent wires concrete tool names like `cluster_overview` on `mock-observability`. Teams swap the MCP backend by editing the agent and config — the skill never changes.
+This repo splits the workflow into two layers:
 
-You could go fully portable (capabilities everywhere) or fully explicit (tool names everywhere). The split lets you take both wins:
+- **Skill** = the procedure (what to do, in capability terms: "cluster/metrics overview", "log search"). Plugin author owns it.
+- **Agent** = the wiring (which concrete MCP tools to call: `cluster_overview` on `mock-observability`). Plugin consumer owns it.
 
-- **Skill stays portable**: stable across teams; smaller token footprint; fewer forks when tool names differ.
-- **Agent stays explicit**: reliable invocation of the exact MCP tools available in a given environment.
+The honest claim isn't "no edits needed when you swap backends" — tool names live somewhere either way. The claim is **which file is the customer's job to edit**:
 
-**Cost of the split:** the workflow exists in both files, so procedure updates touch two places. Acceptable for small plugins; at scale, generate one from the other or pick a single canonical entry point.
+- Upstream skill updates pull cleanly — no merge conflicts with local tool names.
+- One skill can drive multiple agents — prod / dev / staging each wired to a different MCP.
+- The skill is shippable as a reusable artifact; another plugin can borrow it without taking your wiring with it.
+
+**Cost of the split:** the workflow exists in two files, so procedure updates touch both. Fine for small plugins; at scale, generate one from the other or designate a canonical entry point.
+
+**When the split doesn't pay off:** one team, one backend, no upstream updates. Then it's overhead — pick a single layer and keep it explicit.
 
 ---
 
