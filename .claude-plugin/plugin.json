@@ -1,9 +1,9 @@
 {
   "name": "oncall-triage",
   "version": "0.1.0",
-  "description": "Structured incident triage for platform engineers—read-only log/metrics MCP, playbook skill, and safety hooks.",
+  "description": "Read-only incident triage for on-call platform engineers — structured metrics + log investigation, silent-failure guards, and destructive Bash protection. Wire to your existing observability MCPs or run the bundled mock for demos.",
   "author": {
-    "name": "Your Name"
+    "name": "Andy Pang"
   },
   "license": "MIT",
   "keywords": [

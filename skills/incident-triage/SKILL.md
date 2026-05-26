@@ -5,19 +5,21 @@ description: Read-only first-pass incident triage for a live Kubernetes service 
 
 ## MCP
 
-- Use read-only observability tools from the loaded plugin; call them by the names Claude exposes for your configured server.
-- If cluster overview or log-search tools are unavailable: stop and tell the user to fix `.mcp.json` / `claude --plugin-dir` / `/reload-plugins` (plugin README). Do not open Dashboards or drive a browser unless they explicitly ask.
+- Use read-only observability tools from the loaded plugin; call only MCP tool names exposed in this session (e.g. `mcp__<server>__<tool>`)—do not invent names.
+- If cluster overview or log-search tools are unavailable: stop and tell the user to fix `.mcp.json` / `claude --plugin-dir` / `/reload-plugins` (plugin README). Do not open Dashboards or drive a browser unless user explicitly asks.
 
 ## Inputs
 
 Ask the user for anything missing before proceeding:
 
-| Field | Example |
-|-------|---------|
-| Cluster / env short name | `prod-acme` |
-| Namespace (if not default) | `prod-acme` |
-| Symptom | elevated 5xx, lag, crash loop |
-| Time window | last 30m, since deploy at 14:00 UTC |
+
+| Field                      | Example                             |
+| -------------------------- | ----------------------------------- |
+| Cluster / env short name   | `prod-acme`                         |
+| Namespace (if not default) | `prod-acme`                         |
+| Symptom                    | elevated 5xx, lag, crash loop       |
+| Time window                | last 30m, since deploy at 14:00 UTC |
+
 
 ## 1. Metrics snapshot
 
@@ -63,3 +65,4 @@ Escalate to a human when:
 - User needs production data and observability MCP is not configured for their environment.
 - Auth failures persist after credential check.
 - Evidence suggests security incident (exfil, credential leak).
+

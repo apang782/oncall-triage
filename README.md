@@ -114,7 +114,9 @@ claude plugin validate .
 
 ## With more time
 
-Optional **reference** read-only OpenSearch/Grafana MCP implementations (for teams that do not already have log/metrics MCPs)—not required for adoption if you bring your own servers. Plus a docker-compose workshop lab, CI `plugin validate`, verified subagent tool inheritance, and a tested read-only tool allowlist on spawn.
+- **Productionize for target teams**: validate the workflow against real, read-only customer observability MCPs (not just the mock) and improve mapping/diagnostics for common misconfigurations (wrong env/cluster, missing tools, auth failures).
+- **Reliability + safety hardening**: add CI `claude plugin validate` plus small regression tests for silent-failure footguns (arg drift like `hours=`, empty/zero results, effective lookback mismatches) while keeping destructive actions blocked by default via the hook.
+- **Optional consumer layer (gated)**: once triage signal quality is consistently strong, add downstream outputs like first-draft RCA and incident notifications (Slack/email/ticket) as a separate, opt-in layer.
 
 ---
 
