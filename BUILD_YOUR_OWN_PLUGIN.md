@@ -1,132 +1,126 @@
-# Build your own Claude Code plugin (customer guide)
+# Build your own Claude Code plugin
 
-**Audience:** A platform engineer at a large org who wants a plugin for *their* workflow—not Anthropic internal docs.
+A [Claude Code plugin](https://code.claude.com/docs/en/plugins) bundles an AI workflow — a repeatable checklist, a specialist agent, live data tools, and safety guardrails — so your whole team runs the same procedure and enforces the same guardrails, rather than each engineer prompting from scratch.
 
-**Time to first win:** ~30 minutes for skill + agent; add MCP or hooks when you need external data or guardrails.
+**Fast path:** start with **skill + agent**. Most workflows start there — add MCP when you need live data from an external system, hooks when you need a guardrail that can't be bypassed.
 
 ---
 
 ## 1. Start with persona + pain (not `plugin.json`)
 
-Write one sentence:
+Write one sentence before touching any files:
 
 > *Who* is stuck, *what* are they doing, *what breaks today*?
 
-Example: *"On-call SREs lose 20 minutes opening Dashboards tabs when paging fires."*
+This guide uses the oncall-triage plugin as the worked example throughout. The same pattern applies to any workflow — here's how you'd frame this repo's workflow alongside a hypothetical one for your team:
 
-Your plugin should solve **one** job. Everything else is scope creep.
+| Field | This repo (oncall-triage) | Your workflow (example) |
+|-------|--------------------------|------------------------|
+| **Who** | On-call platform engineer responding to a live Kubernetes incident | Senior engineers doing code review |
+| **What** | Triage via ad-hoc Grafana tabs and log queries under time pressure | Manually checking diffs for security anti-patterns |
+| **Breaks today** | Slow and inconsistent; no guardrails against an AI suggesting destructive commands mid-investigation | Takes an hour per review; juniors miss patterns seniors catch by instinct |
+| **Plugin** | `/oncall-triage:incident-triage` — structured read-only triage with a Bash guard | `/security-review` — runs your org's anti-pattern checklist against the diff before merge |
+
+Start with one job. It's easier to expand a focused plugin than to untangle a broad one.
 
 ---
 
-## 2. Minimum viable plugin
+## 2. Pick your components
 
-| Piece | When you need it |
-|-------|------------------|
-| **Skill** (`skills/<name>/SKILL.md`) | Repeatable checklist the user or Claude invokes (`/your-skill`) |
-| **Agent** (`agents/<name>.md`) | Multi-step work that burns context—delegate to a subagent |
-| **MCP** (`.mcp.json`) | External systems: logs, metrics, tickets, CMDB |
-| **Hook** (`hooks/hooks.json`) | Hard guardrails: block deletes, warn on `apply`, audit egress |
+| Piece | When you need it | Why |
+|-------|------------------|-----|
+| [**Skill**](https://code.claude.com/docs/en/skills) (`skills/<name>/SKILL.md`) | Repeatable checklist Claude or the user invokes (`/your-skill`) | Encodes the procedure once; every engineer gets the same steps |
+| [**Agent**](https://code.claude.com/docs/en/agents) (`agents/<name>.md`) | Multi-step work that spans many tool calls | Isolates context so the parent session stays clean |
+| [**MCP**](https://code.claude.com/docs/en/mcp) (`.mcp.json`) | Live data from external systems: logs, metrics, tickets, CMDB | Programmatic access beats browser-driving for speed, tokens, and auditability |
+| [**Hook**](https://code.claude.com/docs/en/hooks-guide) (`hooks/hooks.json`) | Hard guardrails: block deletes, warn on `apply`, audit egress | Hooks enforce; prompts only suggest — users can ignore a prompt, not a hook |
 
-**Rule:** Ship **skill + agent + (MCP or hook)**. Don't add components to check boxes.
+Ship **skill + agent + (MCP or hook)**. Don't bolt on components to check boxes.
 
-### Portable skill vs concrete agent (important)
+### Skill vs agent — keep them separate
 
-| Artifact | Should contain | Should not contain |
-|----------|------------------|-------------------|
-| **Skill** | Procedure: inputs, step order, guards (zero pods, unknown args, facts before hypotheses) | Your vendor’s exact MCP tool names (`cluster_overview`, `search_logs`, …) |
-| **Agent** | Tool priority + **this plugin’s** server/tool names for your demo or product | A second copy of the whole playbook (keep in skill) |
-| **README** | **Tool mapping** table: capability → your server → tool names | — |
-| **`.mcp.json`** | Server launch config | Business logic |
-
-**Why:** If the skill names demo-only tools, every customer must fork the skill when they plug in OpenSearch or Grafana. If the skill names *capabilities* (“read-only metrics overview”, “log search”), customers only change MCP config + agent prompt.
-
-**Fork checklist for observability triage:**
-
-1. Copy the skill → adjust runbook steps (escalation, ticketing)—**not** MCP tool strings unless you lack an agent.
-2. Copy the agent → wire **your** `mcp__…` tool names and server id.
-3. Replace `.mcp.json` → read-only tools only on the MCP surface.
-4. Document your mapping in **your** README (copy the table from oncall-triage).
+| Artifact | Put here | Not here | Why |
+|----------|----------|----------|-----|
+| **Skill** | Procedure: inputs, step order, guards | Vendor-specific MCP tool names | Tool names change when you swap backends; procedure shouldn't have to |
+| **Agent** | Tool priority + your server/tool names | A second copy of the whole playbook | Duplicating the workflow means updating two files every time the procedure changes |
+| **README** | Tool mapping table: capability → server → tool | Business logic | Humans need the mapping; the model gets it from the agent |
 
 ### Standard layout
 
 ```text
 my-plugin/
-├── .claude-plugin/plugin.json   # metadata (name required)
+├── .claude-plugin/plugin.json   # name required
 ├── skills/my-workflow/SKILL.md
 ├── agents/specialist.md
 ├── hooks/hooks.json             # optional
 ├── .mcp.json                    # optional
-└── README.md                    # install in <5 min
+└── README.md
 ```
 
 ---
 
-## 3. Build order (30 / 60 / 90 minutes)
+## 3. Build order
 
-1. **Skill first** — bullet steps, inputs, stop conditions. Easiest to test: `/my-skill`.
-2. **Agent second** — paste skill workflow into agent prompt; add tool priority ("MCP before Bash").
-3. **MCP or hook last** — only when the skill can't be honest without them.
+1. **Skill first** — inputs, ordered steps, stop conditions. Test immediately: `/my-skill`.
+2. **Agent second** — wire tool priority ("MCP before Bash") and your server/tool names.
+3. **MCP or hook last** — only when the skill can't be honest without live data or a hard block.
 
-Validate early: `claude plugin validate ./my-plugin`
+Validate as you go: `claude plugin validate ./my-plugin`
 
----
-
-## 4. Spec-first when design is non-trivial
-
-For a 3-hour plugin, a short spec is enough. For production MCPs or multi-team rollouts, spec-first avoids shipping the wrong abstraction.
-
-**Write before code (one page):**
-
-- Persona + pain (one paragraph)
-- Components: skill / agent / MCP / hook — and what each will *not* do
-- Tool surface (names, read-only vs write, example JSON shape)
-- Open questions (auth, silent-failure footguns, demo vs prod backends)
-
-**Implement after** alignment. Land **producers** (read-only MCP, skill checklist) before **consumers** (automated summarizers, ticket writers, playbook generators)—gate consumers until cost, loop, and trust controls exist.
-
-This repo followed that split: mock MCP + skill + hook in scope; automated post-triage playbooks explicitly out of scope.
+When MCP or hook design is non-trivial, write a one-page spec first: what tools you'll expose, what they won't do, open questions. Implement after you have answers.
 
 ---
 
-## 5. Decision tree: MCP vs hook vs skill-only
+## 4. When to use what
 
 ```text
-Need live data from a system?     → MCP (read-only tools first)
-Need to block dangerous commands? → PreToolUse hook (exit 2 = deny)
-Just need consistent procedure?   → Skill only
-Long investigation eating context?→ Agent
+Need live data from a system?      → MCP (read-only tools first)
+Need to block dangerous commands?  → PreToolUse hook (exit 2 = deny)
+Just need consistent procedure?    → Skill only
+Long investigation eating context? → Agent
 ```
 
-**Enterprise safety:** Prefer *read-only by construction* (MCP tool list has no writes) over prompt pleading ("please don't delete").
+**Safety rule:** read-only by construction (no write tools on the MCP surface) beats "please don't delete" in a prompt.
 
 ---
 
-## 6. Case study: observability triage (this repo)
+## 5. Design decisions in this plugin
 
-**Pain:** Browser-driven log/metrics search is slow and untokenizable; agents silently "succeed" with wrong env prefixes or dropped CLI flags.
+| Decision | Where | Why |
+|----------|-------|-----|
+| MCP before browser | `agents/triage.md` tool priority | Programmatic tools are faster, cheaper in tokens, and auditable |
+| Concrete tool mapping in agent + README | `agents/triage.md`, README | Agent needs exact names; skill stays portable |
+| Silent-failure guards | skill steps 1–2 | Zero pods ≠ healthy; wrong args silently defaulted — baked into procedure |
+| Mock MCP | `mcp-servers/mock-observability/` | Demo and workshops run without prod credentials |
+| Defence in depth | skill (procedure) + hook (Bash deny list) | Two independent layers — bypassing one doesn't bypass the other |
 
-**Patterns we baked in:**
+**If your workflow overlaps with this one** (observability triage on a different stack), fork directly:
 
-| Pattern | Where |
-|---------|--------|
-| MCP before browser | `agents/triage.md` |
-| Portable skill (capabilities, not tool names) | `skills/incident-triage/SKILL.md` |
-| Concrete tool mapping | README **Wire your observability MCPs** + `agents/triage.md` |
-| `unknown_args_warning` (no silent defaults) | mock `search_logs` (production servers should emulate) |
-| Mock MCP for workshops | `mcp-servers/mock-observability/` |
-| Defence in depth | skill (procedure) + hook (Bash deny list) |
-
-**Fork for your org:**
-
-1. Copy `skills/incident-triage/SKILL.md` → edit runbook/escalation steps; **keep capability-based** unless you have no agent.
-2. Copy `agents/triage.md` → set *your* MCP server id and tool names.
-3. Add a README tool-mapping table (capability → server → tool).
-4. Replace `.mcp.json` with your read-only OpenSearch/Grafana MCP configs.
+1. Copy `skills/incident-triage/SKILL.md` → edit runbook/escalation steps; keep capability-based.
+2. Copy `agents/triage.md` → set your MCP server id and tool names.
+3. Update `.mcp.json` → your read-only server(s), no write tools.
+4. Add a tool-mapping table to your README.
 5. Extend `scripts/pre_tool_guard.py` with your banned commands (`aws s3 rm`, `helm uninstall`, etc.).
 
+For any other workflow, the pattern in sections 1–4 is your starting point — not this fork list.
+
 ---
 
-## 7. Testing checklist (fresh clone)
+## 6. Tradeoff: portable skill vs explicit wiring
+
+This repo uses what we'll call the **portable-skill / explicit-agent split**: the skill names capabilities ("cluster/metrics overview", "log search"), while the agent wires concrete tool names like `cluster_overview` on `mock-observability`. Teams swap the MCP backend by editing the agent and config — the skill never changes.
+
+You could go fully portable (capabilities everywhere) or fully explicit (tool names everywhere). The split lets you take both wins:
+
+- **Skill stays portable**: stable across teams; smaller token footprint; fewer forks when tool names differ.
+- **Agent stays explicit**: reliable invocation of the exact MCP tools available in a given environment.
+
+**Cost of the split:** the workflow exists in both files, so procedure updates touch two places. Acceptable for small plugins; at scale, generate one from the other or pick a single canonical entry point.
+
+---
+
+## 7. Testing checklist
+
+Run on a fresh clone (or a teammate's machine) before declaring the plugin done — catches the gap between "works on mine" and "works for anyone."
 
 - [ ] `pip install -r …` (if MCP uses Python)
 - [ ] `claude plugin validate .`
@@ -134,7 +128,7 @@ Long investigation eating context?→ Agent
 - [ ] `/your-skill` runs
 - [ ] Agent invokes MCP tools
 - [ ] Hook blocks a known-bad Bash command
-- [ ] README works without your laptop's secrets
+- [ ] README install works without your laptop's secrets
 
 ---
 
@@ -142,19 +136,14 @@ Long investigation eating context?→ Agent
 
 | Mistake | Fix |
 |---------|-----|
-| Stub agent ("you are helpful…") | Give ordered workflow + tool priority |
-| MCP with write tools | Delete tools; safety is the schema |
-| Hook only in prompt | Users bypass prompts; hooks don't |
-| 10 skills | One skill, one agent, iterate |
-| README is marketing fluff | Copy-paste install + 3-step demo |
+| MCP with write tools | Remove them — safety is the schema, not the prompt |
+| Safety only in a prompt | Hooks enforce; prompts suggest |
 | MCP tool names in the skill | Capabilities in skill; names in README + agent |
 
 ---
 
-## 9. Where to go next
+You have the persona framework, a worked example, and a validation checklist. Build the smallest version of your plugin that proves the value to one team, then iterate from real usage rather than imagined requirements.
 
-- [Create plugins](https://code.claude.com/docs/en/plugins) — official authoring flow
-- [Plugins reference](https://code.claude.com/docs/en/plugins-reference) — hooks events, `${CLAUDE_PLUGIN_ROOT}`
-- [Skills](https://code.claude.com/docs/en/skills) — `SKILL.md` frontmatter
+---
 
-When your plugin works for one team, publish an internal marketplace entry and run a 90-minute "build your first plugin" lab using sections 1–6 above.
+[Official plugin docs](https://code.claude.com/docs/en/plugins) · [Agents](https://code.claude.com/docs/en/agents) · [Hooks guide](https://code.claude.com/docs/en/hooks-guide) · [MCP setup](https://code.claude.com/docs/en/mcp) · [Skills](https://code.claude.com/docs/en/skills)

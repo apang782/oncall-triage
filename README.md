@@ -18,7 +18,7 @@ Claude Code plugin for the engineer **holding the pager** during a **live incide
 
 ## Install (under 5 minutes)
 
-**Prerequisites:** [Claude Code](https://code.claude.com/) CLI, **Python 3.10+**.
+**Prerequisites:** [Claude Code](https://code.claude.com/) CLI, **Python 3.10+** available as `python` on your PATH (the bundled mock MCP server is invoked as `python`).
 
 ```bash
 git clone https://github.com/apang782/oncall-triage oncall-triage-plugin
@@ -96,7 +96,7 @@ The **skill** is capability-based (overview → logs → correlate → handoff) 
 }
 ```
 
-(3) Update `agents/triage.md` with your server keys and tool names. (4) Keep the skill unless you add org runbook steps (PagerDuty, escalation).
+(3) Update `agents/triage.md` with your server keys and tool names. (4) Keep the skill unless you add org runbook steps (PagerDuty, escalation) or your MCP exposes different parameter/response field names than the demo (e.g. `unknown_args_warning`, `effective_lookback`)—adapt the step 2 guards to your tool's contract.
 
 ---
 
