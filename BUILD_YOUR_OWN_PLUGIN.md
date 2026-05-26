@@ -29,6 +29,24 @@ Your plugin should solve **one** job. Everything else is scope creep.
 
 **Rule:** Ship **skill + agent + (MCP or hook)**. Don't add components to check boxes.
 
+### Portable skill vs concrete agent (important)
+
+| Artifact | Should contain | Should not contain |
+|----------|------------------|-------------------|
+| **Skill** | Procedure: inputs, step order, guards (zero pods, unknown args, facts before hypotheses) | Your vendor’s exact MCP tool names (`cluster_overview`, `search_logs`, …) |
+| **Agent** | Tool priority + **this plugin’s** server/tool names for your demo or product | A second copy of the whole playbook (keep in skill) |
+| **README** | **Tool mapping** table: capability → your server → tool names | — |
+| **`.mcp.json`** | Server launch config | Business logic |
+
+**Why:** If the skill names demo-only tools, every customer must fork the skill when they plug in OpenSearch or Grafana. If the skill names *capabilities* (“read-only metrics overview”, “log search”), customers only change MCP config + agent prompt.
+
+**Fork checklist for observability triage:**
+
+1. Copy the skill → adjust runbook steps (escalation, ticketing)—**not** MCP tool strings unless you lack an agent.
+2. Copy the agent → wire **your** `mcp__…` tool names and server id.
+3. Replace `.mcp.json` → read-only tools only on the MCP surface.
+4. Document your mapping in **your** README (copy the table from oncall-triage).
+
 ### Standard layout
 
 ```text
@@ -92,17 +110,19 @@ Long investigation eating context?→ Agent
 | Pattern | Where |
 |---------|--------|
 | MCP before browser | `agents/triage.md` |
-| Silent-failure checks | `skills/incident-triage/SKILL.md` |
-| `unknown_args_warning` (no silent defaults) | `search_logs` returns warning if legacy `hours=` is passed |
+| Portable skill (capabilities, not tool names) | `skills/incident-triage/SKILL.md` |
+| Concrete tool mapping | README **Design** section + `agents/triage.md` |
+| `unknown_args_warning` (no silent defaults) | mock `search_logs` (production servers should emulate) |
 | Mock MCP for workshops | `mcp-servers/mock-observability/` |
 | Defence in depth | skill (procedure) + hook (Bash deny list) |
 
 **Fork for your org:**
 
-1. Copy `skills/incident-triage/SKILL.md` → rename, edit steps 2–3 for your runbooks (PagerDuty link, escalation policy).
-2. Copy `agents/triage.md` → point at *your* MCP tool names.
-3. Replace `.mcp.json` mock entry with your OpenSearch/Grafana MCP configs (keep tools read-only).
-4. Extend `scripts/pre_tool_guard.py` with your banned commands (`aws s3 rm`, `helm uninstall`, etc.).
+1. Copy `skills/incident-triage/SKILL.md` → edit runbook/escalation steps; **keep capability-based** unless you have no agent.
+2. Copy `agents/triage.md` → set *your* MCP server id and tool names.
+3. Add a README tool-mapping table (capability → server → tool).
+4. Replace `.mcp.json` with your read-only OpenSearch/Grafana MCP configs.
+5. Extend `scripts/pre_tool_guard.py` with your banned commands (`aws s3 rm`, `helm uninstall`, etc.).
 
 ---
 
@@ -127,6 +147,7 @@ Long investigation eating context?→ Agent
 | Hook only in prompt | Users bypass prompts; hooks don't |
 | 10 skills | One skill, one agent, iterate |
 | README is marketing fluff | Copy-paste install + 3-step demo |
+| MCP tool names in the skill | Capabilities in skill; names in README + agent |
 
 ---
 
