@@ -16,6 +16,5 @@
     "mcp",
     "incident-response"
   ],
-  "hooks": "./hooks/hooks.json",
   "mcpServers": "./.mcp.json"
 }
